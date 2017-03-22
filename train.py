@@ -53,7 +53,7 @@ def get_unet():
     conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(up9)
     conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(conv9)
 
-    out = Dense(3)(conv9) ##
+    out = Dense(6)(conv9) ##
 
     model = Model(input=inputs, output=out)
 
