@@ -3,7 +3,7 @@ from __future__ import print_function
 import cv2
 import numpy as np
 from keras.models import Model
-from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D
+from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Activation, Dense, Dropout, Flatten
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras import backend as K
@@ -53,9 +53,12 @@ def get_unet():
     conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(up9)
     conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(conv9)
 
-    out = Dense(6)(conv9) ##
+    drop = Dropout(0.25)(conv9)
+    flat = Flatten()(drop) 
+    out = Dense(6)(flat) ##
 
     model = Model(input=inputs, output=out)
+    print(model.summary())
 
     model.compile(optimizer=Adam(lr=1e-5), loss='mse') ##
 
@@ -92,13 +95,13 @@ def train_and_predict():
     print('-'*30)
     print('Fitting model...')
     print('-'*30)
-    model.fit(imgs_train, imgs_train_label, batch_size=32, nb_epoch=20, verbose=1, shuffle=True,
+    model.fit(imgs_train, imgs_train_label, batch_size=32, nb_epoch=30, verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
     print('-'*30)
     print('Loading and preprocessing test data...')
     print('-'*30)
-    imgs_test, imgs_id_test = load_test_data()
+    imgs_test = load_test_data()
     imgs_test = preprocess(imgs_test)
 
     imgs_test = imgs_test.astype('float32')
