@@ -12,8 +12,8 @@ from data import load_train_data, load_test_data
 
 K.set_image_dim_ordering('th')  # Theano dimension ordering in this code
 
-img_rows = 64
-img_cols = 80
+img_rows = 280
+img_cols = 320
 
 
 def get_unet():
@@ -36,25 +36,19 @@ def get_unet():
 
     conv5 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(pool4)
     conv5 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv5)
+    pool5 = MaxPooling2D(pool_size=(2, 2))(conv5)
 
-    up6 = merge([UpSampling2D(size=(2, 2))(conv5), conv4], mode='concat', concat_axis=1)
-    conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(up6)
-    conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv6)
+    conv6 = Convolution2D(1024, 3, 3, activation='relu', border_mode='same')(pool5)
+    conv6 = Convolution2D(1024, 3, 3, activation='relu', border_mode='same')(conv6)
+    pool6 = MaxPooling2D(pool_size=(2, 2))(conv6)
 
-    up7 = merge([UpSampling2D(size=(2, 2))(conv6), conv3], mode='concat', concat_axis=1)
-    conv7 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(up7)
-    conv7 = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(conv7)
 
-    up8 = merge([UpSampling2D(size=(2, 2))(conv7), conv2], mode='concat', concat_axis=1)
-    conv8 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(up8)
-    conv8 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv8)
+    conv7 = Convolution2D(2048, 3, 3, activation='relu', border_mode='same')(pool6)
+    conv7 = Convolution2D(2048, 3, 3, activation='relu', border_mode='same')(conv7)
 
-    up9 = merge([UpSampling2D(size=(2, 2))(conv8), conv1], mode='concat', concat_axis=1)
-    conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(up9)
-    conv9 = Convolution2D(32, 3, 3, activation='relu', border_mode='same')(conv9)
 
-    drop = Dropout(0.25)(conv9)
-    flat = Flatten()(drop) 
+    #drop = Dropout(0.25)(conv7)
+    flat = Flatten()(con7) 
     out = Dense(6)(flat) ##
 
     model = Model(input=inputs, output=out)
@@ -95,7 +89,7 @@ def train_and_predict():
     print('-'*30)
     print('Fitting model...')
     print('-'*30)
-    model.fit(imgs_train, imgs_train_label, batch_size=32, nb_epoch=30, verbose=1, shuffle=True,
+    model.fit(imgs_train, imgs_train_label, batch_size=32, nb_epoch=2000, verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
     print('-'*30)
@@ -118,7 +112,10 @@ def train_and_predict():
     print('-'*30)
     imgs_test_result = model.predict(imgs_test, verbose=1)
     np.save('imgs_test_result.npy', imgs_test_result)
+	
+    test_result = np.load('imgs_test_result.npy');
+    np.savetxt("test_result.csv", test_result, delimiter=",")
 
 
 if __name__ == '__main__':
-    train_and_predict()
+	train_and_predict()
