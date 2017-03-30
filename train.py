@@ -48,8 +48,8 @@ def get_unet():
 
 
     #drop = Dropout(0.25)(conv7)
-    flat = Flatten()(con7) 
-    out = Dense(6)(flat) ##
+    flat = Flatten()(conv7) 
+    out = Dense(6)(flat) 
 
     model = Model(input=inputs, output=out)
     print(model.summary())
@@ -59,20 +59,12 @@ def get_unet():
     return model
 
 
-def preprocess(imgs):
-    imgs_p = np.ndarray((imgs.shape[0], imgs.shape[1], img_rows, img_cols), dtype=np.uint8)
-    for i in range(imgs.shape[0]):
-        imgs_p[i, 0] = cv2.resize(imgs[i, 0], (img_cols, img_rows), interpolation=cv2.INTER_CUBIC)
-    return imgs_p
-
-
 def train_and_predict():
     print('-'*30)
     print('Loading and preprocessing train data...')
     print('-'*30)
     imgs_train, imgs_train_label = load_train_data()
 
-    imgs_train = preprocess(imgs_train)
     imgs_train = imgs_train.astype('float32')
     mean = np.mean(imgs_train)  # mean for data centering
     std = np.std(imgs_train)  # std for data normalization
@@ -89,14 +81,13 @@ def train_and_predict():
     print('-'*30)
     print('Fitting model...')
     print('-'*30)
-    model.fit(imgs_train, imgs_train_label, batch_size=32, nb_epoch=2000, verbose=1, shuffle=True,
+    model.fit(imgs_train, imgs_train_label, batch_size=32, nb_epoch=200, verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
     print('-'*30)
     print('Loading and preprocessing test data...')
     print('-'*30)
     imgs_test = load_test_data()
-    imgs_test = preprocess(imgs_test)
 
     imgs_test = imgs_test.astype('float32')
     imgs_test -= mean
@@ -112,10 +103,10 @@ def train_and_predict():
     print('-'*30)
     imgs_test_result = model.predict(imgs_test, verbose=1)
     np.save('imgs_test_result.npy', imgs_test_result)
-	
+    
     test_result = np.load('imgs_test_result.npy');
     np.savetxt("test_result.csv", test_result, delimiter=",")
 
 
 if __name__ == '__main__':
-	train_and_predict()
+    train_and_predict()
