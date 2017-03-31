@@ -2,8 +2,9 @@ from __future__ import print_function
 
 import cv2
 import numpy as np
+import keras
 from keras.models import Model
-from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D
+from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Flatten
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard
 from keras import backend as K
@@ -11,12 +12,10 @@ from operator import xor
 
 from data import load_train_data, load_test_data
 
-K.set_image_dim_ordering('tf')  # Tenserflow
+K.set_image_dim_ordering('th')  
 
 img_rows = 280
 img_cols = 320
-
-smooth = 1.
 
 class LossAccHistory(keras.callbacks.Callback):
     def __init__(self):
@@ -126,7 +125,8 @@ def train_and_predict():
     print('-'*30)
     model = get_unet()
     model_checkpoint = ModelCheckpoint('unet.hdf5', monitor='loss', save_best_only=True)
-    callbacks_list = [LossAccHistory()];
+    callbacks_list = [history]
+    history = LossAccHistory()
 
     print('-'*30)
     print('Fitting model...')
