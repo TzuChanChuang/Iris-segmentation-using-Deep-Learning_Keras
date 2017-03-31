@@ -138,7 +138,7 @@ def train_and_predict():
     print('-'*30)
     print('Loading and preprocessing test data...')
     print('-'*30)
-    imgs_test, imgs_id_test = load_test_data()
+    imgs_test = load_test_data()
 
     imgs_test = imgs_test.astype('float32')
     imgs_test -= mean

@@ -41,7 +41,7 @@ def create_train_data():
     print('Loading done.')
 
     np.save('imgs_train.npy', imgs)
-    np.save('imgs_mask_train.npy', train_label)
+    np.save('imgs_mask_train.npy', imgs_mask)
     print('Saving to .npy files done.')
 
 
@@ -57,20 +57,15 @@ def create_test_data():
     total = len(images)
 
     imgs = np.ndarray((total, 1, image_rows, image_cols), dtype=np.uint8)
-    imgs_id = np.ndarray((total, ), dtype=np.int32)
 
     i = 0
     print('-'*30)
     print('Creating test images...')
     print('-'*30)
     for image_name in images:
-        img_id = int(image_name.split('.')[0])
         img = cv2.imread(os.path.join(train_data_path, image_name), cv2.IMREAD_GRAYSCALE)
-
         img = np.array([img])
-
         imgs[i] = img
-        imgs_id[i] = img_id
 
         if i % 100 == 0:
             print('Done: {0}/{1} images'.format(i, total))
@@ -78,14 +73,12 @@ def create_test_data():
     print('Loading done.')
 
     np.save('imgs_test.npy', imgs)
-    np.save('imgs_id_test.npy', imgs_id)
     print('Saving to .npy files done.')
 
 
 def load_test_data():
     imgs_test = np.load('imgs_test.npy')
-    imgs_id = np.load('imgs_id_test.npy')
-    return imgs_test, imgs_id
+    return imgs_test
 
 if __name__ == '__main__':
     create_train_data()
