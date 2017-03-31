@@ -5,7 +5,7 @@ import numpy as np
 from keras.models import Model
 from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D
 from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard
 from keras import backend as K
 from operator import xor
 
@@ -17,6 +17,35 @@ img_rows = 280
 img_cols = 320
 
 smooth = 1.
+
+class LossAccHistory(keras.callbacks.Callback):
+    def __init__(self):
+        self.file_names = [
+            'logs/training_loss_logs.txt',
+            'logs/training_acc_logs.txt',
+            'logs/validation_loss_logs.txt',
+            'logs/validation_acc_logs.txt'
+        ]
+        self.logs_keys = [
+            'loss',
+            'acc',
+            'val_loss',
+            'val_acc'
+        ]
+        
+        for file_name in self.file_names:
+            if os.path.isfile(file_name):
+                os.remove(file_name)
+
+    def on_epoch_end(self, epoch, logs={}):
+        for i, logs_key in enumerate(self.logs_keys):
+            with open(self.file_names[i], 'a') as f:
+                f.write(str(logs.get(logs_key)) + '\n')
+                
+            f.closed
+    def on_batch_begin(self, batch, logs={}):
+        lr=self.model.optimizer.lr.get_value()
+        print('\n learning rate :', lr)
 
 
 def err_rate(y_true, y_pred): #error rate
@@ -97,12 +126,14 @@ def train_and_predict():
     print('-'*30)
     model = get_unet()
     model_checkpoint = ModelCheckpoint('unet.hdf5', monitor='loss', save_best_only=True)
+    callbacks_list = [LossAccHistory()];
 
     print('-'*30)
     print('Fitting model...')
     print('-'*30)
+    
     model.fit(imgs_train, imgs_mask_train, batch_size=8, nb_epoch=20, verbose=1, shuffle=True,
-              callbacks=[model_checkpoint])
+              callbacks=[model_checkpoint, callbacks_list])
 
     print('-'*30)
     print('Loading and preprocessing test data...')
