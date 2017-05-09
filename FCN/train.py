@@ -3,33 +3,30 @@ from __future__ import print_function
 import cv2
 import numpy as np
 import keras
+import os
 from keras.models import Model
 from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D, Flatten
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard
 from keras import backend as K
-from operator import xor
 
-from data import load_train_data, load_test_data
+from data import load_train_data, load_test_data, image_cols, image_rows
 
 K.set_image_dim_ordering('th')  
 
-img_rows = 280
-img_cols = 320
+img_rows = 256
+img_cols = 256
+
 
 class LossAccHistory(keras.callbacks.Callback):
     def __init__(self):
         self.file_names = [
             'logs/training_loss_logs.txt',
-            'logs/training_acc_logs.txt',
-            'logs/validation_loss_logs.txt',
-            'logs/validation_acc_logs.txt'
+            'logs/validation_loss_logs.txt'
         ]
         self.logs_keys = [
             'loss',
-            'acc',
-            'val_loss',
-            'val_acc'
+            'val_loss'
         ]
         
         for file_name in self.file_names:
@@ -42,16 +39,12 @@ class LossAccHistory(keras.callbacks.Callback):
                 f.write(str(logs.get(logs_key)) + '\n')
                 
             f.closed
-    def on_batch_begin(self, batch, logs={}):
-        lr=self.model.optimizer.lr.get_value()
-        print('\n learning rate :', lr)
-
 
 def err_rate(y_true, y_pred): #error rate
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
-    xor_y = K.sum(xor(y_true_f, y_pred_f))
-    return xor_y / img_rows * img_cols
+    intersection = K.sum(y_true_f * y_pred_f)
+    return (2. * intersection + 1) / (K.sum(y_true_f) + K.sum(y_pred_f) + 1)
 
 
 def err_rate_loss(y_true, y_pred):
@@ -79,6 +72,8 @@ def get_unet():
     conv5 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(pool4)
     conv5 = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(conv5)
 
+#The `merge` function is deprecated and will be removed after 08/2017. Use instead layers from `keras.layers.merge`, e.g. `add`, `concatenate`, etc.
+
     up6 = merge([UpSampling2D(size=(2, 2))(conv5), conv4], mode='concat', concat_axis=1)
     conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(up6)
     conv6 = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(conv6)
@@ -103,12 +98,20 @@ def get_unet():
 
     return model
 
+def preprocess(imgs):
+    imgs_p = np.ndarray((imgs.shape[0], imgs.shape[1], img_rows, img_cols), dtype=np.uint8)
+    for i in range(imgs.shape[0]):
+        imgs_p[i, 0] = cv2.resize(imgs[i, 0], (img_cols, img_rows), interpolation=cv2.INTER_CUBIC)
+    return imgs_p
 
 def train_and_predict():
     print('-'*30)
     print('Loading and preprocessing train data...')
     print('-'*30)
     imgs_train, imgs_mask_train = load_train_data()
+
+    imgs_train = preprocess(imgs_train)
+    imgs_mask_train = preprocess(imgs_mask_train)
 
     imgs_train = imgs_train.astype('float32')
     mean = np.mean(imgs_train)  # mean for data centering
@@ -124,21 +127,25 @@ def train_and_predict():
     print('Creating and compiling model...')
     print('-'*30)
     model = get_unet()
-    model_checkpoint = ModelCheckpoint('unet.hdf5', monitor='loss', save_best_only=True)
-    callbacks_list = [history]
+    model.summary()
+
+    model_checkpoint = ModelCheckpoint('unet.hdf5', monitor='val_loss', save_best_only=True)
     history = LossAccHistory()
+    callbacks_list = [history, model_checkpoint]
 
     print('-'*30)
     print('Fitting model...')
     print('-'*30)
     
-    model.fit(imgs_train, imgs_mask_train, batch_size=8, nb_epoch=20, verbose=1, shuffle=True,
-              callbacks=[model_checkpoint, callbacks_list])
+    model.fit(imgs_train, imgs_mask_train, batch_size=16, epochs=30, verbose=1, shuffle=True, validation_split=0.2,
+              callbacks=callbacks_list)
+    #model.save_weights('unet.hdf5', overwrite = True)
 
     print('-'*30)
     print('Loading and preprocessing test data...')
     print('-'*30)
     imgs_test = load_test_data()
+    imgs_test = preprocess(imgs_test)
 
     imgs_test = imgs_test.astype('float32')
     imgs_test -= mean
@@ -155,6 +162,23 @@ def train_and_predict():
     imgs_mask_test = model.predict(imgs_test, verbose=1)
     np.save('imgs_mask_test.npy', imgs_mask_test)
 
+def prep(img):
+    	img = img.astype('float32')
+	img = cv2.threshold(img, 0.5, 1., cv2.THRESH_BINARY)[1].astype(np.uint8)
+    	img = img * 255
+    	img = cv2.resize(img, (image_cols, image_rows))
+    	return img
+
+def result():
+	imgs_mask= np.load('imgs_mask_test.npy')
+	img_test = np.load('imgs_test.npy')
+	total = imgs_mask.shape[0]
+
+	for i in range(total):
+		img = imgs_mask[i, 0]
+		resized_mask = prep(img)
+		cv2.imwrite("result_img/"+str(i)+".png", resized_mask)
 
 if __name__ == '__main__':
     train_and_predict()
+    result()
