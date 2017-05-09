@@ -15,11 +15,8 @@ def create_train_data():
     images = os.listdir(train_data_path)
     total = len(images) #24000 images
     imgs = np.ndarray((total, 1, image_rows, image_cols), dtype=np.uint8)
-
-    train_mask_data_path = os.path.join(data_path, 'train_mask')
-    images = os.listdir(train_mask_data_path)
-    imgs_mask = np.ndarray((total, 1, image_rows, image_cols), dtype=np.uint8)
-
+    
+    train_label = np.loadtxt("data/train_label.csv", delimiter=",")
 
     i = 0
     print('-'*30)
@@ -27,13 +24,8 @@ def create_train_data():
     print('-'*30)
     for image_name in images:
         img = cv2.imread(os.path.join(train_data_path, image_name), cv2.IMREAD_GRAYSCALE)
-	img_mask = cv2.imread(os.path.join(train_mask_data_path, image_name), cv2.IMREAD_GRAYSCALE)
-        
-	img = np.array([img])
-	img = np.array([img_mask])
-        
-	imgs[i] = img
-	imgs_mask[i] = img_mask
+        img = np.array([img])
+        imgs[i] = img
 
         if i % 100 == 0:
             print('Done: {0}/{1} images'.format(i, total))
@@ -41,17 +33,17 @@ def create_train_data():
     print('Loading done.')
 
     np.save('imgs_train.npy', imgs)
-    np.save('imgs_mask_train.npy', imgs_mask)
+    np.save('imgs_train_label.npy', train_label)
     print('Saving to .npy files done.')
 
 
 def load_train_data():  
     imgs_train = np.load('imgs_train.npy')
-    imgs_mask_train = np.load('imgs_mask_train.npy')
-    return imgs_train, imgs_mask_train
+    imgs_train_label = np.load('imgs_train_label.npy')
+    return imgs_train, imgs_train_label
 
 
-def create_test_data():
+def create_test_data(): 
     train_data_path = os.path.join(data_path, 'test')
     images = os.listdir(train_data_path)
     total = len(images)
@@ -64,6 +56,7 @@ def create_test_data():
     print('-'*30)
     for image_name in images:
         img = cv2.imread(os.path.join(train_data_path, image_name), cv2.IMREAD_GRAYSCALE)
+
         img = np.array([img])
         imgs[i] = img
 
