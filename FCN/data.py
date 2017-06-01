@@ -31,8 +31,8 @@ def create_train_data():
     i = 0
     for image_name in images:
         img = cv2.imread(os.path.join(train_data_path, image_name), cv2.IMREAD_GRAYSCALE)
-    img = np.array([img])
-    imgs[i] = img
+        img = np.array([img])
+        imgs[i] = img
 
         if i % 100 == 0:
             print('Done: {0}/{1} images'.format(i, total))
@@ -41,8 +41,8 @@ def create_train_data():
 
     i = 0
     for image_name in images_mask:
-    img_mask = cv2.imread(os.path.join(train_mask_data_path, image_name), cv2.IMREAD_GRAYSCALE)
-    img_mask = np.array([img_mask])
+        img_mask = cv2.imread(os.path.join(train_mask_data_path, image_name), cv2.IMREAD_GRAYSCALE)
+        img_mask = np.array([img_mask])
         imgs_mask[i] = img_mask
 
         if i % 100 == 0:
